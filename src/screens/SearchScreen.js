@@ -1,43 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native';
 import SearchBar from '../components/SearchBar';
-import yelp from '../api/yelp';
+import useResults from '../hooks/useResults';
+import ResultsList from '../components/ResultsList';
 
 const SearchScreen = () => {
 	const [ term, setTerm ] = useState('');
-	const [ results, setResults ] = useState([]);
-	const [ errorMessage, setErrorMessage ] = useState('');
+	const [ searchApi, results, errorMessage, isLoading ] = useResults();
 
-	const searchApi = async (searchTerm) => {
-		try {
-			const response = await yelp.get('/search', {
-				params: {
-					limit: 50,
-					term: searchTerm,
-					location: 'san jose'
-				}
-			});
-			setResults(response.data.businesses);
-		} catch (error) {
-			setErrorMessage('Something went wrong');
-		}
+	const filterResultsByPrice = (price) => {
+		return results.filter((result) => {
+			return result.price === price;
+		});
 	};
 
-	useEffect(() => {
-		searchApi('pasta');
-	}, []);
-
-	return (
-		<View style={{ backgroundColor: 'white' }}>
-			<SearchBar term={term} onTermChange={setTerm} onTermSubmit={() => searchApi(term)} />
-			{errorMessage ? <Text> {errorMessage} </Text> : null}
-			<Text>we have found {results.length} results.</Text>
-		</View>
-	);
+	if (!isLoading) {
+		return (
+			<View style={{ backgroundColor: 'white', flex: 1 }}>
+				<SearchBar term={term} onTermChange={setTerm} onTermSubmit={() => searchApi(term)} />
+				{errorMessage ? <Text> {errorMessage} </Text> : null}
+				<ScrollView>
+					<ResultsList results={filterResultsByPrice('$')} title="Cost Effective" />
+					<ResultsList results={filterResultsByPrice('$$')} title="Bit Pricier" />
+					<ResultsList results={filterResultsByPrice('$$$')} title="Big Spender" />
+				</ScrollView>
+			</View>
+		);
+	} else {
+		return (
+			<ActivityIndicator
+				size="large"
+				color="#00ff00"
+				style={{ justifyContent: 'center', alignItems: 'center', flex: 1 }}
+			/>
+		);
+	}
 };
 
 SearchScreen.navigationOptions = {
-	title: 'Business Search'
+	title: 'Resturant Search'
 };
 
 export default SearchScreen;
